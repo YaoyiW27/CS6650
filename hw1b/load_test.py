@@ -29,7 +29,7 @@ def load_test(url, duration_seconds=30):
 
     return response_times
 
-EC2_URL = "http://44.248.242.185:8080/albums"
+EC2_URL = "http://44.244.116.4:8080/albums"
 
 response_times = load_test(EC2_URL)
 
