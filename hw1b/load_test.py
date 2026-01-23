@@ -45,7 +45,7 @@ def load_test(url, duration_seconds=30):
     return response_times
 
 # Target URL - EC2 server endpoint
-EC2_URL = "http://44.244.116.4:8080/albums"
+EC2_URL = "http://44.252.106.108:8080/albums"
 
 # Run the load test
 response_times = load_test(EC2_URL)
