@@ -17,6 +17,7 @@ provider "aws" {
 
 # Your ec2 instance
 resource "aws_instance" "demo-instance" {
+  count                  = 2
   ami                    = data.aws_ami.al2023.id
   instance_type          = "t2.micro"
   iam_instance_profile   = "LabInstanceProfile"
@@ -24,7 +25,7 @@ resource "aws_instance" "demo-instance" {
   key_name               = var.ssh_key_name
 
   tags = {
-    Name = "terraform-created-instance-:)"
+    Name = "terraform-created-instance-${count.index}"
   }
 }
 
@@ -66,5 +67,5 @@ data "aws_ami" "al2023" {
 }
 
 output "ec2_public_dns" {
-  value = aws_instance.demo-instance.public_dns
+  value = aws_instance.demo-instance[*].public_dns
 }
