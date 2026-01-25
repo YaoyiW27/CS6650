@@ -10,7 +10,7 @@ variable "ssh_key_name" {
   description = "Name of your existing AWS key pair"
 }
 
-# The provider of your cloud service, in this case it is AWS. 
+# The provider of your cloud service, in this case it is AWS.
 provider "aws" {
   region     = "us-west-2" # Which region you are working on
 }
@@ -28,7 +28,7 @@ resource "aws_instance" "demo-instance" {
   }
 }
 
-# Your security that grants ssh access from 
+# Your security that grants ssh access from
 # your ip address to your ec2 instance
 resource "aws_security_group" "ssh" {
   name        = "allow_ssh_from_me"
@@ -37,6 +37,13 @@ resource "aws_security_group" "ssh" {
     description = "SSH"
     from_port   = 22
     to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.ssh_cidr]
+  }
+  ingress {
+    description = "HTTP"
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = [var.ssh_cidr]
   }
