@@ -1,0 +1,18 @@
+Part V: Claude Code Bug Analysis
+
+1. Time Spent: ~40 minutes (Claude Code analysis took 1m 28s)
+
+2. Bug Description:
+Race condition in postAlbumCount function (main.go lines 129-130).
+The code spawns 10,000 goroutines that increment a counter without synchronization.
+
+Evidence from CloudWatch Logs (/aws/lambda/album-counter):
+Request 1: Final Count: 10000  ✓ (correct)
+Request 2: Final Count: 19994  ✗ (expected 20000, lost 6)
+Request 3: Final Count: 29987  ✗ (expected 30000, lost 13)
+Request 4: Final Count: 39987  ✗ (expected 40000, lost 13)
+Request 5: Final Count: 49974  ✗ (expected 50000, lost 26)
+
+Fix: Use sync.Mutex or atomic.AddInt64() for synchronization.
+
+3. Claude Code conversation exported in attached .txt file.
