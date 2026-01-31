@@ -16,7 +16,7 @@ I compared two counters incremented by 50 goroutines, each running 1000 iteratio
 
 **Without -race flag:**
 
-![atomic-1](atomic-1.png)
+![atomic-1](screenshots/atomic-1.png)
 
 | Counter | Result | Expected | Correct? |
 |---------|--------|----------|----------|
@@ -29,7 +29,7 @@ I compared two counters incremented by 50 goroutines, each running 1000 iteratio
 go run -race atomic-counters.go
 ```
 
-![atomic-2](atomic-2.png)
+![atomic-2](screenshots/atomic-2.png)
 
 The race detector identified 2 data races at line 41 (`regularOps++`):
 1. **Read-Write conflict:** Goroutine 13 reading while Goroutine 7 writing
@@ -50,7 +50,8 @@ I spawned 50 goroutines, each writing 1000 distinct key-value pairs to a shared 
 
 ### Results
 
-![collections](collections.png)
+![collections-1](screenshots/collections-1.png)
+![collections-2](screenshots/collections-2.png)
 
 ```
 fatal error: concurrent map writes
@@ -73,7 +74,7 @@ I wrapped the map in a struct with a `sync.Mutex`, locking before each write ope
 
 ### Results
 
-![mutex](mutex.png)
+![mutex](screenshots/mutex.png)
 
 | Run | Time |
 |-----|------|
@@ -99,7 +100,7 @@ I replaced `sync.Mutex` with `sync.RWMutex`. Since our experiment only does writ
 
 ### Results
 
-![rwmutex](rwmutex.png)
+![rwmutex](screenshots/rwmutex.png)
 
 | Run | Time |
 |-----|------|
@@ -125,7 +126,7 @@ I replaced the plain map with `sync.Map`, using `m.Store(key, value)` for writes
 
 ### Results
 
-![syncmap](syncmap.png)
+![syncmap](screenshots/syncmap.png)
 
 | Run | Time |
 |-----|------|
@@ -203,7 +204,7 @@ I compared two approaches writing 100,000 lines to a file:
 
 ### Results
 
-![fileaccess](fileaccess.png)
+![fileaccess](screenshots/fileaccess.png)
 
 | Mode | Time | System Calls |
 |------|------|--------------|
@@ -228,7 +229,7 @@ Two goroutines ping-pong a message 1,000,000 times. I measured the average switc
 
 ### Results
 
-![contextswitch](contextswitch.png)
+![contextswitch](screenshots/contextswitch.png)
 
 | Mode | Total Time | Avg Switch Time |
 |------|------------|-----------------|
