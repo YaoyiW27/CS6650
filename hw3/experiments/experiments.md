@@ -235,7 +235,7 @@ Two goroutines ping-pong a message 1,000,000 times. I measured the average switc
 | Single Thread | 213.7ms | 107 ns |
 | Multi Thread | 265.9ms | 133 ns |
 
-**Single thread is ~24% faster**
+**Single thread is ~24% faster!**
 
 ### Why is single thread faster?
 
@@ -246,13 +246,14 @@ Two goroutines ping-pong a message 1,000,000 times. I measured the average switc
 
 ### Context Switching Cost Comparison
 
-| Switch Type | Approx Cost | Reason |
-|-------------|-------------|--------|
-| Goroutine (same thread) | ~100 ns | User-space, Go runtime manages |
-| OS Thread | ~1-10 μs | Kernel-space, save/restore registers |
-| Process | ~10-100 μs | Switch entire address space |
-| Container | Similar to Process | Still a process underneath |
-| Virtual Machine | ~ms | Switch entire virtual hardware |
+| Execution Unit | Typical Cost | Why |
+|----------------|--------------|-----|
+| Goroutine | ~100 ns | User-level, same memory |
+| Thread | ~1-10 μs | Kernel involvement |
+| Process | ~10-100 μs | Separate address spaces |
+| Container | ~Process | Process + isolation |
+| VM | 100s of μs+ | Hypervisor + virtual hardware |
+| RPC | ~ms | Network + serialization |
 
 ### Lesson Learned
 Goroutines are extremely lightweight compared to OS threads. This is why Go can handle hundreds of thousands of concurrent goroutines while Java struggles with a few thousand threads.
