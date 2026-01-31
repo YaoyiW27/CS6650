@@ -1,6 +1,7 @@
-from locust import HttpUser, task, between
+from locust import task, between
+from locust.contrib.fasthttp import FastHttpUser
 
-class AlbumUser(HttpUser):
+class AlbumUser(FastHttpUser):
     wait_time = between(1, 2)  # Wait 1-2 seconds between tasks
 
     @task(3)  # Weight 3 - GET will run 3x more often than POST
