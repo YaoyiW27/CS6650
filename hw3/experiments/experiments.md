@@ -193,10 +193,66 @@ In our experiment, we only performed **writes**, so RWMutex showed minimal impro
 
 ## 6. File Access
 
-(TODO)
+### Concept
+Every `f.Write()` call is a **system call** that switches from user mode to kernel mode, asking the OS to write to disk. This is expensive. **Buffered I/O** reduces this cost by collecting writes in memory and flushing to disk in larger batches.
+
+### Experiment
+I compared two approaches writing 100,000 lines to a file:
+- **Unbuffered**: `f.Write()` on each iteration (100,000 system calls)
+- **Buffered**: `bufio.Writer` collects writes, then `Flush()` once (few system calls)
+
+### Results
+
+![fileaccess](fileaccess.png)
+
+| Mode | Time | System Calls |
+|------|------|--------------|
+| Unbuffered | 155.5ms | ~100,000 |
+| Buffered | 5.1ms | ~few dozen |
+| **Speedup** | **30.2x** | - |
+
+### Lesson Learned
+I/O operations are expensive. Always use buffered I/O when possible to reduce system call overhead.
 
 ---
 
 ## 7. Context Switching
 
-(TODO)
+### Concept
+**Context switching** is when the CPU stops executing one task and switches to another. This requires saving/restoring state and takes time. Goroutines are lightweight threads managed by Go runtime, which can switch faster than OS threads.
+
+### Experiment
+Two goroutines ping-pong a message 1,000,000 times. I measured the average switch time in two modes:
+- **Single thread (GOMAXPROCS=1)**: All goroutines on one OS thread
+- **Multi thread (GOMAXPROCS=NumCPU)**: Goroutines can use multiple OS threads
+
+### Results
+
+![contextswitch](contextswitch.png)
+
+| Mode | Total Time | Avg Switch Time |
+|------|------------|-----------------|
+| Single Thread | 213.7ms | 107 ns |
+| Multi Thread | 265.9ms | 133 ns |
+
+**Single thread is ~24% faster**
+
+### Why is single thread faster?
+
+| Mode | What happens |
+|------|--------------|
+| Single thread | Goroutines switch within Go runtime (user-space, very fast) |
+| Multi thread | May involve OS thread switching (kernel-space, slower) |
+
+### Context Switching Cost Comparison
+
+| Switch Type | Approx Cost | Reason |
+|-------------|-------------|--------|
+| Goroutine (same thread) | ~100 ns | User-space, Go runtime manages |
+| OS Thread | ~1-10 μs | Kernel-space, save/restore registers |
+| Process | ~10-100 μs | Switch entire address space |
+| Container | Similar to Process | Still a process underneath |
+| Virtual Machine | ~ms | Switch entire virtual hardware |
+
+### Lesson Learned
+Goroutines are extremely lightweight compared to OS threads. This is why Go can handle hundreds of thousands of concurrent goroutines while Java struggles with a few thousand threads.
