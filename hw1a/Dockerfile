@@ -1,17 +1,29 @@
 # ---- build stage ----
-FROM golang:1.25 AS builder      # Base image with Go compiler, named "builder"
-WORKDIR /app                     # Set working directory
+# Base image with Go compiler, named "builder"
+FROM golang:1.25 AS builder
+# Set working directory
+WORKDIR /app
 
-COPY go.mod go.sum ./            # Copy dependency files
-RUN go mod download              # Download dependencies
+# Copy dependency files
+COPY go.mod go.sum ./
+# Download dependencies
+RUN go mod download
 
-COPY . .                         # Copy all source code
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server .   # Compile static binary
+# Copy all source code
+COPY . .
+# Compile static binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server .
 
 # ---- run stage ----
-FROM gcr.io/distroless/base-debian12   # Minimal runtime image (no shell, more secure)
-WORKDIR /                              # Set root as working directory
-COPY --from=builder /app/server /server   # Copy binary from builder stage
-EXPOSE 8080                            # Declare port
-USER nonroot:nonroot                   # Run as non-root user (security)
-ENTRYPOINT ["/server"]                 # Command to run when container starts
+# Minimal runtime image (no shell, more secure)
+FROM gcr.io/distroless/base-debian12
+# Set root as working directory
+WORKDIR /
+# Copy binary from builder stage
+COPY --from=builder /app/server /server
+# Declare port
+EXPOSE 8080
+# Run as non-root user (security)
+USER nonroot:nonroot
+# Command to run when container starts
+ENTRYPOINT ["/server"]
