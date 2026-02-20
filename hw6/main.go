@@ -20,15 +20,15 @@ type Product struct {
 }
 
 type SearchResponse struct {
-	Products      []Product `json: "products"`
-	TotalFound    int       `json: "total_found"`
-	SearchTime    string    `json: "search_time"`
+	Products      []Product `json:"products"`
+	TotalFound    int       `json:"total_found"`
+	SearchTime    string    `json:"search_time"`
 }
 
 var store sync.Map
 
 var brands = []string{"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Theta", "Omega"}
-var categories = []string{"Electronics", "Books", "Home", "Garden", "Sports", "Toys", "Clothing". "Food"}
+var categories = []string{"Electronics", "Books", "Home", "Garden", "Sports", "Toys", "Clothing", "Food"}
 var descriptions = []string{
 	"High quality product for everyday use",
 	"Premium grade item with warrenty",
@@ -47,7 +47,7 @@ func generateProducts() {
 			ID:              i,
 			Name:            fmt.Sprintf("Product %s %d", brand, i),
 			Category:        categories[i%len(categories)],
-			Description:     description[i%len(description)],
+			Description:     descriptions[i%len(descriptions)],
 			Brand:           brand,
 		}
 		store.Store(i, p)
@@ -55,10 +55,10 @@ func generateProducts() {
 	log.Println("Generated 100,000 products")
 }
 
-fun searchHandler(w http.ResponseWriter, r *http.Request) {
+func searchHandler(w http.ResponseWriter, r *http.Request) {
 	q := strings.ToLower(r.URL.Query().Get("q"))
 	if q == "" {
-		http.Error(W, `{"error": "query paramter 'q' is requied}`, http.SatusBadRequest)
+		http.Error(w, `{"error": "query parameter 'q' is required"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -72,7 +72,7 @@ fun searchHandler(w http.ResponseWriter, r *http.Request) {
 		if checked >= 100 {
 			break
 		}
-		val, ok := store.load(i)
+		val, ok := store.Load(i)
 		if !ok {
 			continue
 		}
@@ -96,16 +96,16 @@ fun searchHandler(w http.ResponseWriter, r *http.Request) {
 	resp := SearchResponse{
 		Products:     results,
 		TotalFound:   totalFound,
-		SearchTime;   time.Since(start).String(),
+		SearchTime:   time.Since(start).String(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
 
-func healthHandler(W http.ResponseWriter, r *http.Request) {
+func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status": "healthy}`))
+	w.Write([]byte(`{"status": "healthy"}`))
 }
 
 func main() {
@@ -115,7 +115,7 @@ func main() {
 	http.HandleFunc("/health", healthHandler)
 
 	port := "8080"
-	log.Printf("Server is running on port %s", port
+	log.Printf("Server is running on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
