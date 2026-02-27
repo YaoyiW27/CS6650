@@ -123,36 +123,6 @@ Load testing performed with **Locust** against each phase under identical condit
 | 3 - Circuit Breaker | < 50ms | ~50% → decreasing | ✅ Yes | High |
 | 4 - Bulkhead | < 50ms | ~50% (payment only) | ✅ Yes | High |
 
-## Tech Stack
-
-- **Language:** Go 1.21+
-- **Web Framework:** Gin
-- **Load Testing:** Locust (Python)
-- **Deployment:** AWS EC2 (student lab)
-- **Metrics Visualization:** Locust built-in charts + custom graphs
-
-## Project Structure
-
-```
-midterm-resilience/
-├── cmd/
-│   ├── gateway/         # API Gateway
-│   ├── order/           # Order Service
-│   ├── payment/         # Payment Service (with fault injection)
-│   └── inventory/       # Inventory Service
-├── internal/
-│   ├── circuitbreaker/  # Circuit Breaker implementation
-│   ├── bulkhead/        # Bulkhead (goroutine pool) implementation
-│   └── failfast/        # Fail Fast health checker
-├── locustfile.py        # Load test scenarios
-├── scripts/
-│   ├── deploy.sh        # EC2 deployment script
-│   └── run_tests.sh     # Automated test runner for all phases
-├── go.mod
-├── go.sum
-└── README.md
-```
-
 ## Quick Start
 
 ```bash
