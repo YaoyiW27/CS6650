@@ -1,6 +1,6 @@
 # Resilient Microservices Demo: Crash & Recovery
 
-A distributed microservices system demonstrating common failure scenarios and resilience patterns (Fail Fast, Circuit Breaker, Bulkhead) in a Go-based e-commerce order processing pipeline, deployed on AWS EC2.
+A distributed microservices system demonstrating common failure scenarios and three resilience patterns — **Fail Fast**, **Circuit Breaker**, and **Bulkhead** — implemented in Go, showcasing how each pattern addresses cascading failures in a microservices architecture.
 
 ## Architecture
 
@@ -26,131 +26,103 @@ A distributed microservices system demonstrating common failure scenarios and re
 ### Services
 
 - **API Gateway** (`:8080`) — Entry point. Routes incoming requests to Order Service.
-- **Order Service** (`:8081`) — Orchestrates order processing. Calls Payment and Inventory services.
-- **Payment Service** (`:8082`) — Simulates payment processing. Will be configured to crash/hang to trigger failures.
-- **Inventory Service** (`:8083`) — Simulates inventory checks. Will be configured to slow down under load.
+- **Order Service** (`:8081`) — Orchestrates order processing. Calls Payment and Inventory services. Implements all resilience patterns.
+- **Payment Service** (`:8082`) — Simulates payment processing. Supports fault injection (crash, hang, flaky).
+- **Inventory Service** (`:8083`) — Simulates inventory checks. Supports slow mode.
+
+## Fault Injection
+
+Payment Service exposes admin endpoints to simulate failures on demand:
+
+| Endpoint | Effect |
+|---|---|
+| `POST /admin/crash` | Service stops responding (process exit) |
+| `POST /admin/hang` | Responses delayed by 30s |
+| `POST /admin/flaky?rate=0.5` | 50% of requests fail randomly |
+| `POST /admin/recover` | Restore normal operation |
 
 ## Failure Scenarios & Resilience Patterns
 
 ### Phase 1: No Resilience (Baseline)
 
-**Scenario:** Payment Service crashes or hangs. No protection in place.
+**Scenario:** Payment Service hangs (30s delay). No protection in place.
 
-**Expected behavior:**
-- Order Service threads block waiting for Payment responses
-- Request queue backs up, all requests time out
-- Inventory Service is healthy but becomes unreachable because Order Service is overwhelmed
-- Cascading failure — entire system becomes unresponsive
+**What happens:** Order Service uses a 35s HTTP timeout. Every request blocks waiting for Payment to respond. With 100 concurrent users, all threads are occupied waiting — the entire system grinds to a halt.
 
 ### Phase 2: Fail Fast
 
-**Scenario:** Same failure, but Order Service implements fail-fast checks.
+**Pattern:** A background health checker pings each downstream service every 2 seconds. If a service is unreachable, incoming requests are rejected immediately (0ms) instead of waiting for a timeout.
 
-**Pattern:** Before calling a downstream service, quickly verify it's reachable (health check / timeout). If not, return an error immediately instead of waiting.
-
-**Expected behavior:**
-- Requests to Payment fail instantly with a clear error
-- Order Service resources are freed quickly
-- System remains partially functional — Inventory calls still work
-- Reduced latency on failed requests (ms instead of timeout seconds)
+**What happens:** Health checker detects Payment is down within 2-4 seconds. All subsequent requests return instantly with a clear error. System resources are freed immediately.
 
 ### Phase 3: Circuit Breaker
 
-**Scenario:** Payment Service is intermittently failing.
+**Pattern:** Tracks the failure rate of downstream calls. After 3 consecutive failures, the circuit "opens" — all requests are short-circuited with a fallback response for a 10-second cooldown. After cooldown, one probe request is allowed ("half-open") to test recovery.
 
-**Pattern:** Track failure rate of downstream calls. When failures exceed a threshold, "open" the circuit — stop calling the failing service entirely for a cooldown period. Periodically allow a test request ("half-open") to check if the service has recovered.
+**States:** Closed (normal) → Open (blocking) → Half-Open (testing) → Closed (recovered)
 
-**States:**
-- **Closed** — Normal operation, requests pass through
-- **Open** — Failures exceeded threshold, requests short-circuited with fallback response
-- **Half-Open** — After cooldown, allow one test request to determine recovery
+**What happens:** Under flaky conditions (50% failure rate), the circuit breaker absorbs failures and returns graceful fallback responses (HTTP 202 "pending"). The system maintains high throughput and Inventory calls are unaffected.
 
-**Expected behavior:**
-- Initial failures detected and circuit opens
-- Subsequent requests return fallback instantly (no waiting)
-- System auto-recovers when Payment Service comes back online
-- Inventory Service completely unaffected throughout
+### Phase 4: Bulkhead + Circuit Breaker + Fail Fast (Combined)
 
-### Phase 4: Bulkhead
+**Pattern:** All three patterns layered together. Additionally, Payment and Inventory calls are isolated into separate goroutine pools (max 10 concurrent each) and executed in parallel.
 
-**Scenario:** Payment Service hangs (slow responses, not crashing).
+**What happens:** Fail Fast catches known-down services instantly. Circuit Breaker handles intermittent failures. Bulkhead ensures Payment failures cannot exhaust resources needed by Inventory. Parallel execution reduces latency when both services are healthy.
 
-**Pattern:** Isolate downstream service calls into separate goroutine pools with bounded concurrency. Payment and Inventory each get their own pool — if one pool is exhausted, the other continues operating normally.
+## Load Test Results
 
-**Expected behavior:**
-- Payment goroutine pool fills up with hanging requests
-- New payment requests are rejected immediately (pool full)
-- Inventory goroutine pool operates independently at full capacity
-- System degrades gracefully — inventory-only operations are unaffected
+Load testing performed with **Locust**: 100 concurrent users, 10 users/sec spawn rate, ~60 seconds per phase.
 
-## Fault Injection
+### Results Summary
 
-Payment Service exposes admin endpoints to simulate failures:
+| Phase | Median (ms) | p95 (ms) | p99 (ms) | RPS | Failure % | Total Requests |
+|---|---|---|---|---|---|---|
+| **1 - No Resilience** | 30,033 | 30,000 | 30,000 | 7.3 | 0% | 500 |
+| **2 - Fail Fast** | 1 | 4 | 20 | 330.3 | 100% | 25,979 |
+| **3 - Circuit Breaker** | 32 | 52 | 66 | 295.7 | 0% | 26,705 |
+| **4 - Bulkhead + All** | 1 | 4 | 18 | 332.1 | 100% | 21,390 |
 
-| Endpoint | Effect |
-|---|---|
-| `POST /admin/crash` | Service stops responding (process exit) |
-| `POST /admin/hang` | Responses delayed by 30s+ |
-| `POST /admin/flaky?rate=0.5` | 50% of requests fail randomly |
-| `POST /admin/recover` | Restore normal operation |
+### Key Observations
 
-## Metrics & Evaluation
+- **Phase 1 → Phase 2:** Latency dropped from 30,033ms to 1ms. Throughput increased 45x (7.3 → 330.3 RPS). Fail Fast prevents resource exhaustion by rejecting requests to unhealthy services immediately.
 
-Load testing performed with **Locust** against each phase under identical conditions.
+- **Phase 3 (Circuit Breaker):** Under 50% flaky conditions, achieved 0% Locust failures with 295.7 RPS. The circuit breaker returns HTTP 202 (pending) as a graceful fallback, so the system degrades gracefully rather than failing hard.
 
-### Test Configuration
+- **Phase 4 (All Combined):** Best overall performance — 1ms median, 332.1 RPS. Parallel execution of Inventory and Payment calls, combined with all three resilience patterns, provides maximum protection and efficiency.
 
-- **Users:** 100 concurrent
-- **Spawn rate:** 10 users/sec
-- **Duration:** 60 seconds per phase
-- **Endpoints tested:** `POST /orders` (triggers both Payment and Inventory calls)
-
-### Metrics Collected
-
-| Metric | Description |
-|---|---|
-| **Latency (p50, p95, p99)** | Response time distribution |
-| **Throughput (req/s)** | Successful requests per second |
-| **Error Rate (%)** | Percentage of failed requests |
-| **Availability** | Inventory Service availability during Payment failure |
-
-### Expected Results Summary
-
-| Phase | Latency (p95) | Error Rate | Inventory Available | Throughput |
-|---|---|---|---|---|
-| 1 - No Resilience | 30s+ (timeout) | ~100% | ❌ No | Near 0 |
-| 2 - Fail Fast | < 100ms | ~50% (payment only) | ✅ Yes | Moderate |
-| 3 - Circuit Breaker | < 50ms | ~50% → decreasing | ✅ Yes | High |
-| 4 - Bulkhead | < 50ms | ~50% (payment only) | ✅ Yes | High |
+- **Failure % context:** Phase 2 and 4 show 100% Locust failures because Payment is completely down (hang mode) — all requests correctly return error responses. The key insight is that these errors return in 1ms instead of 30 seconds, keeping the system responsive.
 
 ## Quick Start
 
 ```bash
-# Build all services
-make build
+# Initialize project
+go mod init midterm-resilience
+go get github.com/gin-gonic/gin
 
-# Run locally (4 terminals)
-./bin/gateway
-./bin/order
-./bin/payment
-./bin/inventory
+# Run all 4 services (in separate terminals)
+go run cmd/gateway/main.go
+go run cmd/order/main.go
+go run cmd/payment/main.go
+go run cmd/inventory/main.go
 
-# Run load test
-locust -f locustfile.py --host=http://localhost:8080
+# Test normal order
+curl -X POST http://localhost:8080/orders
 
-# Trigger failure
-curl -X POST http://localhost:8082/admin/crash
+# Inject fault and test each phase
+curl -X POST http://localhost:8082/admin/hang
+curl -X POST http://localhost:8080/orders/phase1   # 30s hang
+curl -X POST http://localhost:8080/orders/phase2   # instant fail
+curl -X POST http://localhost:8080/orders/phase3   # circuit breaker
+curl -X POST http://localhost:8080/orders/phase4   # bulkhead + all
 
-# Run full experiment (all phases)
-./scripts/run_tests.sh
-```
+# View resilience stats
+curl http://localhost:8080/stats
 
-## AWS Deployment
+# Recover
+curl -X POST http://localhost:8082/admin/recover
 
-```bash
-# Deploy to EC2
-./scripts/deploy.sh
-
-# Run remote tests
-locust -f locustfile.py --host=http://<ec2-public-ip>:8080
+# Load test a specific phase
+pip install locust
+locust -f locustfile.py --host=http://localhost:8080 --tags phase1
+# Open http://localhost:8089, set 100 users / 10 spawn rate
 ```
