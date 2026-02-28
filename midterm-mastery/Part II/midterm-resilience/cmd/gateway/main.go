@@ -53,9 +53,35 @@ func proxyPost(c *gin.Context, targetURL string) {
 func main() {
 	r := gin.Default()
 
-	// Route: Create Order
+	// Routes: Create Order (all phases)
 	r.POST("/orders", func(c *gin.Context) {
 		proxyPost(c, orderURL+"/orders")
+	})
+	r.POST("/orders/phase1", func(c *gin.Context) {
+		proxyPost(c, orderURL+"/orders/phase1")
+	})
+	r.POST("/orders/phase2", func(c *gin.Context) {
+		proxyPost(c, orderURL+"/orders/phase2")
+	})
+	r.POST("/orders/phase3", func(c *gin.Context) {
+		proxyPost(c, orderURL+"/orders/phase3")
+	})
+	r.POST("/orders/phase4", func(c *gin.Context) {
+		proxyPost(c, orderURL+"/orders/phase4")
+	})
+
+	// === Stats ===
+	r.GET("/stats", func(c *gin.Context) {
+		resp, err := http.Get(orderURL + "/stats")
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "cannot reach order service"})
+			return
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		var result any
+		json.Unmarshal(body, &result)
+		c.JSON(resp.StatusCode, result)
 	})
 
 	// Aggregate Health Check
