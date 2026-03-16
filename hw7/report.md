@@ -2,6 +2,8 @@
 
 
 > **TODO: Combine team results**
+
+> See the shared Google Sheet for group results: [Group Results Sheet](https://docs.google.com/spreadsheets/d/1vUnhPHcGvaPlH1ZLdVgcAKUMGENw_JBaKoSgbAcoZnw/edit?usp=sharing)
 ---
 
 ## Part I: Vector Clocks
