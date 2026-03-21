@@ -1,6 +1,6 @@
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
+  default = "us-west-2"
 }
 
 variable "service_name" {
@@ -11,6 +11,11 @@ variable "service_name" {
 variable "container_port" {
   type    = number
   default = 8080
+}
+
+variable "ecr_repository_name" {
+  type    = string
+  default = "hw8-cart-repo"
 }
 
 variable "db_password" {
