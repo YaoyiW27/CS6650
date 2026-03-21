@@ -90,6 +90,12 @@ module "rds" {
   db_password           = var.db_password
 }
 
+# ─── DynamoDB (STEP II) ───────────────────────────────────────────────
+module "dynamodb" {
+  source       = "./modules/dynamodb"
+  service_name = var.service_name
+}
+
 # ─── ECS ──────────────────────────────────────────────────────────────
 module "ecs" {
   source = "./modules/ecs"
@@ -106,13 +112,15 @@ module "ecs" {
   region             = var.aws_region
 
   environment = [
-    { name = "STORE_TYPE",  value = "mysql" },
+    { name = "STORE_TYPE",  value = "dynamodb" },
     { name = "DB_HOST",     value = module.rds.host },
     { name = "DB_PORT",     value = "3306" },
     { name = "DB_USER",     value = "admin" },
     { name = "DB_PASSWORD", value = var.db_password },
     { name = "DB_NAME",     value = "shopping" },
     { name = "PORT",        value = tostring(var.container_port) },
+    { name = "DYNAMO_TABLE", value = module.dynamodb.table_name },
+    { name = "AWS_REGION",   value = var.aws_region },
   ]
 }
 

@@ -19,6 +19,8 @@ func main() {
 	dbName := getEnv("DB_NAME", "shopping")
 	port := getEnv("PORT", "8080")
 	storeType := getEnv("STORE_TYPE", "mysql") // "mysql" or "dynamodb"
+	dynamoTable := getEnv("DYNAMO_TABLE", "")
+	awsRegion := getEnv("AWS_REGION", "us-west-2")
 
 	var s store.CartStore
 	var err error
@@ -31,7 +33,11 @@ func main() {
 			log.Fatalf("Failed to init MySQL store: %v", err)
 		}
 	case "dynamodb":
-		log.Fatalf("DynamoDB store not implemented yet")
+		log.Printf("Connecting to DynamoDB table %s in %s", dynamoTable, awsRegion)
+		s, err = store.NewDynamoStore(awsRegion, dynamoTable)
+		if err != nil {
+			log.Fatalf("Failed to init DynamoDB store: %v", err)
+		}
 	default:
 		log.Fatalf("Unknown STORE_TYPE: %s", storeType)
 	}
