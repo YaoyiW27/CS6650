@@ -102,6 +102,20 @@ func handleSet(w http.ResponseWriter, r *http.Request) {
 		// Followers should NOT receive client writes in leader-follower mode
 		http.Error(w, "writes must go to the leader", http.StatusForbidden)
 
+	case "leaderless":
+		// Any node can be the Write Coordinator
+		version, err := replMgr.CoordinatorSet(key, value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"key":     key,
+			"version": version,
+		})
+
 	default:
 		// Standalone mode (no replication)
 		version := kvStore.Set(key, value)
@@ -140,6 +154,16 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 			"value":   entry.Value,
 			"version": entry.Version,
 		})
+
+	case "leaderless":
+		// R=1: just read local
+		data, found := replMgr.LeaderlessGet(key)
+		if !found {
+			http.Error(w, "key not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
 
 	default:
 		entry, exists := kvStore.Get(key)
