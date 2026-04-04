@@ -1,0 +1,62 @@
+# Leader-Follower configuration
+# Usage: docker compose -f docker-compose-leader.yml up --build
+# Change W and R env vars to switch between strategies:
+#   Strategy 1: W=5, R=1
+#   Strategy 2: W=1, R=5
+#   Strategy 3: W=3, R=3
+
+services:
+  leader:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ROLE=leader
+      - PEERS=http://follower1:8080,http://follower2:8080,http://follower3:8080,http://follower4:8080
+      - W=5
+      - R=1
+      - N=5
+
+  follower1:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - ROLE=follower
+      - PEERS=http://leader:8080,http://follower2:8080,http://follower3:8080,http://follower4:8080
+      - W=5
+      - R=1
+      - N=5
+
+  follower2:
+    build: .
+    ports:
+      - "8082:8080"
+    environment:
+      - ROLE=follower
+      - PEERS=http://leader:8080,http://follower1:8080,http://follower3:8080,http://follower4:8080
+      - W=5
+      - R=1
+      - N=5
+
+  follower3:
+    build: .
+    ports:
+      - "8083:8080"
+    environment:
+      - ROLE=follower
+      - PEERS=http://leader:8080,http://follower1:8080,http://follower2:8080,http://follower4:8080
+      - W=5
+      - R=1
+      - N=5
+
+  follower4:
+    build: .
+    ports:
+      - "8084:8080"
+    environment:
+      - ROLE=follower
+      - PEERS=http://leader:8080,http://follower1:8080,http://follower2:8080,http://follower3:8080
+      - W=5
+      - R=1
+      - N=5
