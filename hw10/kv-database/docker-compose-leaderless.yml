@@ -1,0 +1,59 @@
+# Leaderless configuration: W=N(5), R=1
+# All nodes are equal — any node can receive reads and writes.
+# Usage: docker compose -f docker-compose-leaderless.yml up --build
+
+services:
+  node1:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ROLE=leaderless
+      - PEERS=http://node2:8080,http://node3:8080,http://node4:8080,http://node5:8080
+      - W=5
+      - R=1
+      - N=5
+
+  node2:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - ROLE=leaderless
+      - PEERS=http://node1:8080,http://node3:8080,http://node4:8080,http://node5:8080
+      - W=5
+      - R=1
+      - N=5
+
+  node3:
+    build: .
+    ports:
+      - "8082:8080"
+    environment:
+      - ROLE=leaderless
+      - PEERS=http://node1:8080,http://node2:8080,http://node4:8080,http://node5:8080
+      - W=5
+      - R=1
+      - N=5
+
+  node4:
+    build: .
+    ports:
+      - "8083:8080"
+    environment:
+      - ROLE=leaderless
+      - PEERS=http://node1:8080,http://node2:8080,http://node3:8080,http://node5:8080
+      - W=5
+      - R=1
+      - N=5
+
+  node5:
+    build: .
+    ports:
+      - "8084:8080"
+    environment:
+      - ROLE=leaderless
+      - PEERS=http://node1:8080,http://node2:8080,http://node3:8080,http://node4:8080
+      - W=5
+      - R=1
+      - N=5
