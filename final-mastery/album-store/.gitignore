@@ -1,0 +1,8 @@
+uploads/
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+uploads/
+album-store
+album-store-linux
