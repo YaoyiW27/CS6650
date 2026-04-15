@@ -26,13 +26,12 @@ DELETE /users/123       → delete a user
 
 | | RPC | REST |
 |---|---|---|
-| Thinking / 思维方式 | Call a function / 调用函数 | Operate on resource / 操作资源 |
+| Thinking | Call a function / 调用函数 | Operate on resource / 操作资源 |
 | URL style | Verb (`/getUser`) / 动词 | Noun (`/users/123`) / 名词 |
 | Coupling / 耦合度 | High (must know function name) / 高 | Low (uniform GET/POST/PUT/DELETE) / 低 |
 | Examples / 例子 | gRPC, Thrift | Your Album Store API / 你的作业 |
 
-Your Album Store is REST: `PUT /albums/:id`, `GET /albums`, `POST /albums/:id/photos`.
-你的 Album Store 就是 REST 风格。
+Album Store is REST: `PUT /albums/:id`, `GET /albums`, `POST /albums/:id/photos`.
 
 ---
 
@@ -132,7 +131,7 @@ conn.SetConnMaxLifetime(30 * time.Minute)   // recycle after 30min / 30 分钟�
 conn.SetConnMaxIdleTime(5 * time.Minute)    // close idle after 5min / 空闲 5 分钟关
 ```
 
-Your `db.go` uses this. / 你的 `db.go` 就用了连接池。
+Final: `db.go` uses this.
 
 ---
 
@@ -149,8 +148,7 @@ Your `db.go` uses this. / 你的 `db.go` 就用了连接池。
 - W + R > N → guaranteed to read latest / 保证读到最新
 - Examples: DynamoDB, Cassandra
 
-Your HW10: both Leader-Follower and Leaderless in Go.
-你 HW10 用 Go 实现了两种。
+HW10: both Leader-Follower and Leaderless in Go.
 
 ---
 
@@ -239,8 +237,7 @@ NOT idempotent / 不幂等:
   POST /albums/123/photos → each call creates new photo (different seq)
 ```
 
-Your `PUT /albums/:id` uses UPSERT = idempotent.
-你的 PUT 用了 UPSERT = 幂等。
+Final: `PUT /albums/:id` uses UPSERT = idempotent.
 
 ---
 
@@ -282,5 +279,4 @@ Shuffle: group by key       → {"hello": [1,1], "world": [1]}
 Reduce:  sum                → {"hello": 2, "world": 1}
 ```
 
-Your HW did MapReduce on AWS ECS.
-你的 HW 在 ECS 上做过。
+HW4: did MapReduce on AWS ECS.
